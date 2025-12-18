@@ -120,13 +120,22 @@ function updateBotCards(sessionId, stateLabel) {
     const total = stat.win + stat.loss;
     const winRate = total ? ((stat.win / total) * 100).toFixed(2) : "0.00";
 
-    // Tín hiệu tỉ lệ cao (> 75%) sẽ được thêm class để đổi màu (text xanh)
-    const isHighRatio = Number(signal.ratio) > 75;
+    const ratioValue = Number(signal.ratio);
+
+    // Tín hiệu tỉ lệ cao (>= 75%) sẽ được thêm class để tô nền nổi bật
+    const isHighRatio = ratioValue >= 75;
     const signalClass = isHighRatio ? "signal signal-high" : "signal";
 
     // Win Rate trong phần bot-info: trên 50% xanh, 50% trở xuống đỏ
     const isHighWinRate = Number(winRate) > 50;
     const winRateClass = isHighWinRate ? "ratio-high" : "ratio-low";
+
+    // Màu cho direction trong signal: BUY xanh, SELL đỏ
+    const dirClass =
+      humanDir === "BUY" ? "dir-buy" : humanDir === "SELL" ? "dir-sell" : "";
+
+    // Màu cho phần số % trong signal: từ 75% trở lên thì xanh
+    const ratioTextClass = isHighRatio ? "ratio-high" : "";
 
     // Lấy lịch sử kết quả của bot này
     const results = botResults[botName] || [];
@@ -152,7 +161,10 @@ function updateBotCards(sessionId, stateLabel) {
         <div class="${winRateClass}">Win Rate: ${winRate}%</div>
         <div>Ratio: ${signal.ratio}%</div>
       </div>
-      <div class="${signalClass}">${humanDir} - ${signal.ratio}%</div>
+      <div class="${signalClass}">
+        <span class="${dirClass}">${humanDir}</span> -
+        <span class="${ratioTextClass}">${signal.ratio}%</span>
+      </div>
       ${resultsHtml}
     `;
     

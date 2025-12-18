@@ -130,7 +130,6 @@
         /* Tín hiệu có tỉ lệ cao (>= 75%) sẽ được tô màu nổi bật */
         .signal-high {
             background: #fff3cd;
-            color: #28a745;
             font-weight: bold;
         }
 
@@ -150,6 +149,17 @@
         }
 
         .ratio-low {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        /* Màu cho chữ BUY / SELL trong signal */
+        .dir-buy {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .dir-sell {
             color: #dc3545;
             font-weight: 600;
         }
@@ -239,6 +249,8 @@
 
             .bot-results {
                 font-size: 12px;
+                max-height: 120px; /* nhiều kết quả thì cuộn trong mobile */
+                overflow-y: auto;
             }
 
             .log-container {
