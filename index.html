@@ -130,7 +130,7 @@
         /* Tín hiệu có tỉ lệ cao (>= 75%) sẽ được tô màu nổi bật */
         .signal-high {
             background: #fff3cd;
-            color: #856404;
+            color: #28a745;
             font-weight: bold;
         }
 
@@ -141,6 +141,17 @@
 
         .bot-results .loss {
             color: #dc3545;
+        }
+
+        /* Màu cho Ratio trong bot-info: trên 50% xanh, 50% trở xuống đỏ */
+        .ratio-high {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .ratio-low {
+            color: #dc3545;
+            font-weight: 600;
         }
 
         .log-container {
@@ -212,13 +223,14 @@
                 font-size: 14px;
                 display: flex;
                 flex-wrap: wrap;
-                column-gap: 12px;
+                column-gap: 0;
                 row-gap: 4px;
             }
 
             .bot-info div {
                 margin-bottom: 4px;
-                min-width: 50%;
+                flex: 1 0 33.33%;
+                text-align: center;
             }
 
             .signal {

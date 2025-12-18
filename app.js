@@ -120,9 +120,13 @@ function updateBotCards(sessionId, stateLabel) {
     const total = stat.win + stat.loss;
     const winRate = total ? ((stat.win / total) * 100).toFixed(2) : "0.00";
 
-    // Tín hiệu tỉ lệ cao (>= 75%) sẽ được thêm class để đổi màu
-    const isHighRatio = Number(signal.ratio) >= 75;
+    // Tín hiệu tỉ lệ cao (> 75%) sẽ được thêm class để đổi màu (text xanh)
+    const isHighRatio = Number(signal.ratio) > 75;
     const signalClass = isHighRatio ? "signal signal-high" : "signal";
+
+    // Win Rate trong phần bot-info: trên 50% xanh, 50% trở xuống đỏ
+    const isHighWinRate = Number(winRate) > 50;
+    const winRateClass = isHighWinRate ? "ratio-high" : "ratio-low";
 
     // Lấy lịch sử kết quả của bot này
     const results = botResults[botName] || [];
@@ -145,7 +149,7 @@ function updateBotCards(sessionId, stateLabel) {
       <div class="bot-name">${formatBotName(botName)}</div>
       <div class="bot-info">
         <div>Win/Loss: ${stat.win}/${stat.loss}</div>
-        <div>Win Rate: ${winRate}%</div>
+        <div class="${winRateClass}">Win Rate: ${winRate}%</div>
         <div>Ratio: ${signal.ratio}%</div>
       </div>
       <div class="${signalClass}">${humanDir} - ${signal.ratio}%</div>
