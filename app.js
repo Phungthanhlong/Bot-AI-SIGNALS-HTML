@@ -120,16 +120,22 @@ function updateBotCards(sessionId, stateLabel) {
     const total = stat.win + stat.loss;
     const winRate = total ? ((stat.win / total) * 100).toFixed(2) : "0.00";
 
+    // Tín hiệu tỉ lệ cao (>= 75%) sẽ được thêm class để đổi màu
+    const isHighRatio = Number(signal.ratio) >= 75;
+    const signalClass = isHighRatio ? "signal signal-high" : "signal";
+
     // Lấy lịch sử kết quả của bot này
     const results = botResults[botName] || [];
     let resultsHtml = "";
     if (results.length > 0) {
       resultsHtml = '<div class="bot-results">';
       results.slice(-10).reverse().forEach(r => {
-        const shortSessionId = r.sessionId.length > 8 ? r.sessionId.substring(0, 8) + "..." : r.sessionId;
-        resultsHtml += `<div>${shortSessionId}: ${r.result} (${r.prediction} ${r.ratio}%)</div>`;
+        const shortSessionId =
+          r.sessionId.length > 8 ? r.sessionId.substring(0, 8) + "..." : r.sessionId;
+        const resultClass = r.result === "WIN" ? "win" : "loss";
+        resultsHtml += `<div class="${resultClass}">${shortSessionId}: ${r.result} (${r.prediction} ${r.ratio}%)</div>`;
       });
-      resultsHtml += '</div>';
+      resultsHtml += "</div>";
     }
 
     const botCard = document.createElement("div");
@@ -142,7 +148,7 @@ function updateBotCards(sessionId, stateLabel) {
         <div>Win Rate: ${winRate}%</div>
         <div>Ratio: ${signal.ratio}%</div>
       </div>
-      <div class="signal">${humanDir} - ${signal.ratio}%</div>
+      <div class="${signalClass}">${humanDir} - ${signal.ratio}%</div>
       ${resultsHtml}
     `;
     
