@@ -185,6 +185,46 @@
             margin-right: 10px;
         }
 
+        /* Token input form */
+        .token-form {
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            background: #f9f9f9;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .token-form input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .token-form button {
+            padding: 8px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .token-form button:hover {
+            background: #0056b3;
+        }
+
+        .token-form button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
         /* Responsive layout */
         @media (max-width: 1024px) {
             .header {
@@ -256,6 +296,21 @@
             .log-container {
                 display: none; /* ẩn log ở mobile */
             }
+
+            .token-form {
+                padding: 10px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .token-form input {
+                min-width: 100%;
+                margin-bottom: 8px;
+            }
+
+            .token-form button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -268,6 +323,11 @@
                 <span id="statusText">Connecting...</span>
                 <span class="countdown" id="countdown">Waiting for data...</span>
             </div>
+        </div>
+
+        <div class="token-form" id="tokenForm">
+            <input type="text" id="tokenInput" placeholder="Nhập token kết nối..." />
+            <button id="connectBtn">Kết nối</button>
         </div>
 
         <div class="content">

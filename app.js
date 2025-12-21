@@ -1,24 +1,28 @@
 // app.js
 // Kết nối Socket.IO tới wss://api-redsell.gpttrade.app và hiển thị trên trình duyệt
 
-// TODO: Nếu token hết hạn, bạn cần thay token mới vào đây
-// Lưu ý: KHÔNG để cả "/socket.io/..." trong URL truyền vào io(),
-// nếu không server có thể báo "Invalid namespace".
 const BASE_URL = "wss://api-redsell.gpttrade.app";
-const TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjYwNDM3MzcsIm5pY2tOYW1lIjoiQmVlbnlldCIsImlkIjoiZDM4NDIzNmYtNjQ5Ny00NjUxLWEzNzMtMDNmMDY4YWE2MGI4IiwiZW1haWwiOiJwaHVuZ3RoYW5obG9uZzA4QGdtYWlsLmNvbSIsInNjb3BlIjoiIiwiZXhwIjoxNzY2MTMwMTM3LCJhdWQiOiJodHRwczovL2dwdHRyYWRlLmFwcC8iLCJpc3MiOiJncHR0cmFkZS1yZWRzZWxsIiwic3ViIjoiaW5mb0BncHR0cmFkZS5hcHAifQ.AL0qtxotXMDR_9FhZfyMqgW12-JO_rNgxytKSKeph8I";
 
-// Kết nối tới namespace mặc định "/", path chuẩn của Socket.IO là "/socket.io"
-const socket = io(BASE_URL, {
-  path: "/socket.io", // rất quan trọng với Socket.IO server, tránh lỗi Invalid namespace
-  transports: ["websocket"], // ép dùng websocket
-  reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
-  query: {
-    token: TOKEN,
-  },
-});
+// Cookie helper functions
+function setCookie(name, value, days = 30) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+}
+
+function getCookie(name) {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === " ") c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+// Socket sẽ được khởi tạo sau khi người dùng nhấn nút kết nối
+let socket = null;
 
 // Lưu 10 message JSON gần nhất (chỉ để debug khi cần)
 const lastMessages = [];
@@ -63,6 +67,15 @@ const statusText = document.getElementById("statusText");
 const countdownEl = document.getElementById("countdown");
 const botCards = document.getElementById("botCards");
 const logContainer = document.getElementById("logContainer");
+const tokenForm = document.getElementById("tokenForm");
+const tokenInput = document.getElementById("tokenInput");
+const connectBtn = document.getElementById("connectBtn");
+
+// Kiểm tra cookie và điền token nếu có
+const savedToken = getCookie("trading_token");
+if (savedToken) {
+  tokenInput.value = savedToken;
+}
 
 // Format bot name thành Title Case
 function formatBotName(botName) {
@@ -122,23 +135,37 @@ function updateBotCards(sessionId, stateLabel) {
 
     const ratioValue = Number(signal.ratio);
 
-    // Tín hiệu tỉ lệ cao (>= 75%) sẽ được thêm class để tô nền nổi bật
-    const isHighRatio = ratioValue >= 75;
+    // Tín hiệu tỉ lệ cao (>= 80%) sẽ được thêm class để tô nền nổi bật
+    const isHighRatio = ratioValue >= 80;
     const signalClass = isHighRatio ? "signal signal-high" : "signal";
 
     // Win Rate trong phần bot-info: trên 50% xanh, 50% trở xuống đỏ
     const isHighWinRate = Number(winRate) > 50;
     const winRateClass = isHighWinRate ? "ratio-high" : "ratio-low";
 
+    // Lấy lịch sử kết quả của bot này
+    const results = botResults[botName] || [];
+    
+    // Lọc các kết quả có ratio >= 80% và tính Win Rate
+    const highRatioResults = results.filter(r => Number(r.ratio) >= 80);
+    const highRatioWin = highRatioResults.filter(r => r.result === "WIN").length;
+    const highRatioLoss = highRatioResults.filter(r => r.result === "LOSS").length;
+    const highRatioTotal = highRatioResults.length;
+    const highRatioWinRate = highRatioTotal > 0 
+      ? ((highRatioWin / highRatioTotal) * 100).toFixed(2) 
+      : "0.00";
+    
+    // Màu cho Ratio >= 80% Win Rate: trên 50% xanh, 50% trở xuống đỏ
+    const isHighRatioWinRateHigh = Number(highRatioWinRate) > 50;
+    const highRatioWinRateClass = isHighRatioWinRateHigh ? "ratio-high" : "ratio-low";
+
     // Màu cho direction trong signal: BUY xanh, SELL đỏ
     const dirClass =
       humanDir === "BUY" ? "dir-buy" : humanDir === "SELL" ? "dir-sell" : "";
 
-    // Màu cho phần số % trong signal: từ 75% trở lên thì xanh
-    const ratioTextClass = isHighRatio ? "ratio-high" : "";
-
-    // Lấy lịch sử kết quả của bot này
-    const results = botResults[botName] || [];
+    // Màu cho phần số % trong signal: từ 80% trở lên thì xanh
+    const isHighRatioForText = ratioValue >= 80;
+    const ratioTextClass = isHighRatioForText ? "ratio-high" : "";
     let resultsHtml = "";
     if (results.length > 0) {
       resultsHtml = '<div class="bot-results">';
@@ -159,6 +186,7 @@ function updateBotCards(sessionId, stateLabel) {
       <div class="bot-info">
         <div>Win/Loss: ${stat.win}/${stat.loss}</div>
         <div class="${winRateClass}">Win Rate: ${winRate}%</div>
+        <div class="${highRatioWinRateClass}">Ratio >= 80% Win Rate: ${highRatioWinRate}% (${highRatioWin}/${highRatioTotal})</div>
         <div>Ratio: ${signal.ratio}%</div>
       </div>
       <div class="${signalClass}">
@@ -212,42 +240,89 @@ function showCountdown(data) {
   countdownEl.textContent = msg;
 }
 
-// Sự kiện kết nối cơ bản
-socket.on("connect", () => {
-  addLog(`Connected, socket id: ${socket.id}`, "info");
-  statusIndicator.classList.add("connected");
-  statusText.textContent = "Connected";
+// Hàm khởi tạo kết nối socket
+function initSocket(token) {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
 
-  // Sau khi connect xong, client cần "đăng ký" (subscribe) các kênh mà server hỗ trợ
-  // theo như bạn thấy trong log: LINK_ACCOUNT_SUBCRIBE, CURRENT_SESSION_SUBCRIBE, AI_TRADING_SUBCRIBE
-  // Nếu server yêu cầu thêm dữ liệu (vd: userId, sessionId,...) bạn có thể truyền trong object phía sau.
+  socket = io(BASE_URL, {
+    path: "/socket.io",
+    transports: ["websocket"],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    query: {
+      token: token,
+    },
+  });
 
-  // Theo log từ web, LINK_ACCOUNT_SUBCRIBE cần truyền thêm linkAccountId
-  // Nếu bạn có nhiều tài khoản, nhớ thay đúng ID tương ứng
-  socket.emit("LINK_ACCOUNT_SUBCRIBE", "2134da88-78be-4bb4-9fd3-016c04989dd7");
-  socket.emit("CURRENT_SESSION_SUBCRIBE");
-  socket.emit("AI_TRADING_SUBCRIBE");
+  // Sự kiện kết nối cơ bản
+  socket.on("connect", () => {
+    addLog(`Connected, socket id: ${socket.id}`, "info");
+    statusIndicator.classList.add("connected");
+    statusText.textContent = "Connected";
+    connectBtn.disabled = false;
+    connectBtn.textContent = "Kết nối";
 
-  addLog("Sent 3 subscribe events", "info");
-});
+    // Sau khi connect xong, client cần "đăng ký" (subscribe) các kênh mà server hỗ trợ
+    socket.emit("LINK_ACCOUNT_SUBCRIBE", "2134da88-78be-4bb4-9fd3-016c04989dd7");
+    socket.emit("CURRENT_SESSION_SUBCRIBE");
+    socket.emit("AI_TRADING_SUBCRIBE");
 
-socket.on("connect_error", (err) => {
-  addLog(`Connection error: ${err.message || err}`, "info");
+    addLog("Sent 3 subscribe events", "info");
+
+    // Thiết lập các listener sau khi kết nối thành công
+    setupSocketListeners();
+  });
+
+  socket.on("connect_error", (err) => {
+    addLog(`Connection error: ${err.message || err}`, "info");
+    statusIndicator.classList.remove("connected");
+    statusText.textContent = "Connection Error";
+    connectBtn.disabled = false;
+    connectBtn.textContent = "Kết nối";
+  });
+
+  socket.on("disconnect", (reason) => {
+    addLog(`Disconnected: ${reason}`, "info");
+    statusIndicator.classList.remove("connected");
+    statusText.textContent = "Disconnected";
+  });
+}
+
+// Xử lý sự kiện nhấn nút kết nối
+connectBtn.addEventListener("click", () => {
+  const token = tokenInput.value.trim();
+  
+  if (!token) {
+    alert("Vui lòng nhập token!");
+    return;
+  }
+
+  // Lưu token vào cookie
+  setCookie("trading_token", token);
+
+  // Cập nhật UI
+  connectBtn.disabled = true;
+  connectBtn.textContent = "Đang kết nối...";
+  statusText.textContent = "Connecting...";
   statusIndicator.classList.remove("connected");
-  statusText.textContent = "Connection Error";
-});
 
-socket.on("disconnect", (reason) => {
-  addLog(`Disconnected: ${reason}`, "info");
-  statusIndicator.classList.remove("connected");
-  statusText.textContent = "Disconnected";
+  // Khởi tạo kết nối
+  initSocket(token);
 });
 
 // Để debug: log tên event lần đầu tiên xuất hiện
 const seenEvents = new Set();
 
 // Bắt tất cả event và log lại
-socket.onAny((event, ...args) => {
+// Chỉ đăng ký listener khi socket đã được khởi tạo
+function setupSocketListeners() {
+  if (!socket) return;
+
+  socket.onAny((event, ...args) => {
   let data = args[0];
 
   // Cố gắng parse JSON nếu là string
@@ -398,6 +473,10 @@ socket.onAny((event, ...args) => {
     addLog(`New event: ${event}`, "info");
   }
 
-  addMessage(event, data);
-});
+    addMessage(event, data);
+  });
+}
+
+// Gọi setupSocketListeners sau khi socket được khởi tạo
+// Sẽ được gọi trong initSocket sau khi socket.on("connect")
 
