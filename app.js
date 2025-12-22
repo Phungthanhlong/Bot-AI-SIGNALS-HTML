@@ -82,6 +82,20 @@ function formatBotName(botName) {
   return botName.charAt(0).toUpperCase() + botName.slice(1);
 }
 
+// Hàm helper để parse ratio value (xử lý cả số, chuỗi, và chuỗi có %)
+function parseRatio(ratio) {
+  if (typeof ratio === "number") {
+    return ratio;
+  }
+  if (typeof ratio === "string") {
+    // Loại bỏ ký tự % và khoảng trắng, sau đó parse
+    const cleaned = ratio.replace(/%/g, "").trim();
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
+
 function addMessage(eventName, data) {
   const record = {
     time: new Date().toISOString(),
@@ -133,7 +147,7 @@ function updateBotCards(sessionId, stateLabel) {
     const total = stat.win + stat.loss;
     const winRate = total ? ((stat.win / total) * 100).toFixed(2) : "0.00";
 
-    const ratioValue = Number(signal.ratio);
+    const ratioValue = parseRatio(signal.ratio);
 
     // Tín hiệu tỉ lệ cao (>= 80%) sẽ được thêm class để tô nền nổi bật
     const isHighRatio = ratioValue >= 80;
@@ -147,7 +161,7 @@ function updateBotCards(sessionId, stateLabel) {
     const results = botResults[botName] || [];
     
     // Lọc các kết quả có ratio >= 80% và tính Win Rate
-    const highRatioResults = results.filter(r => Number(r.ratio) >= 80);
+    const highRatioResults = results.filter(r => parseRatio(r.ratio) >= 80);
     const highRatioWin = highRatioResults.filter(r => r.result === "WIN").length;
     const highRatioLoss = highRatioResults.filter(r => r.result === "LOSS").length;
     const highRatioTotal = highRatioResults.length;
